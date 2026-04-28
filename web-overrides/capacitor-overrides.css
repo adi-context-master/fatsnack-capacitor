@@ -2,21 +2,35 @@
  * Capacitor overrides for fat-snag.
  *
  * The Next.js source renders each route inside a 402x874 "simulator" frame
- * that has rounded corners, a fake Dynamic Island, a fake home indicator,
- * and a side caption ("01 - iOS splash" / "402 x 874 - iPhone 15 Pro").
+ * with a side caption ("01 - iOS splash" / "402 x 874 - iPhone 15 Pro"),
+ * a fake Dynamic Island, a fake home indicator, and a rounded bezel.
+ * On a real device we strip all of that so screen content fills the
+ * viewport. The actual scale-to-fit transform is applied from
+ * capacitor-init.js (CSS calc(100vw / 402px) is unreliable in
+ * cross-browser).
  *
- * In a real native shell we want the screen content to fill the device,
- * with no bezel/island/home/caption decoration, and the dark page background
- * replaced with the screen background.
- *
- * These rules only activate when <body> has the class "cap-app" (added by
- * capacitor-init.js when running inside Capacitor).
+ * Rules are scoped to body.cap-app so non-Capacitor environments
+ * (regular browser, npm run dev) are completely unaffected.
  */
 
 html.cap-app,
 body.cap-app {
   background: #000 !important;
   overflow: hidden;
+  /* Defaults — capacitor-init.js writes the real values on resize. */
+  --cap-tx: 0px;
+  --cap-ty: 0px;
+  --cap-scale: 1;
+}
+
+/* CSS rule with !important wins against inline styles set by fat-snag's
+ * per-screen useEffect (which assigns transform without !important). */
+body.cap-app .stage {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform-origin: top left !important;
+  transform: translate(var(--cap-tx), var(--cap-ty)) scale(var(--cap-scale)) !important;
 }
 
 body.cap-app {
@@ -24,6 +38,22 @@ body.cap-app {
   gap: 0 !important;
   align-items: stretch !important;
   justify-content: stretch !important;
+}
+
+/* Probe element used by capacitor-init.js to read env(safe-area-inset-*)
+ * pixel values. Hidden but kept in the DOM. */
+.cap-safe-probe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  pointer-events: none;
+  visibility: hidden;
 }
 
 body.cap-app .caption {
@@ -38,23 +68,6 @@ body.cap-app .home {
 body.cap-app .device {
   border-radius: 0 !important;
   box-shadow: none !important;
-}
-
-/* The .stage is 402x874 fixed-size, scaled via inline transform from JS.
- * Override that to scale-to-fit the actual device viewport, anchored top-left.
- * `100vw / 402px` etc. evaluate to a unitless number in modern WebKit/Blink. */
-body.cap-app .stage {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  transform-origin: top left !important;
-  transform: scale(min(calc(100vw / 402px), calc(100vh / 874px))) !important;
-}
-
-/* If a screen renders without the .stage wrapper (rare), still strip the
- * dark background. */
-body.cap-app .device:only-child {
-  margin: 0 !important;
 }
 
 /* Hide the dev-only Tweaks button if it ever leaks into a Capacitor build. */
