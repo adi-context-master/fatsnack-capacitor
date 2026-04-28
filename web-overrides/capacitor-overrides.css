@@ -1,0 +1,64 @@
+/*
+ * Capacitor overrides for fat-snag.
+ *
+ * The Next.js source renders each route inside a 402x874 "simulator" frame
+ * that has rounded corners, a fake Dynamic Island, a fake home indicator,
+ * and a side caption ("01 - iOS splash" / "402 x 874 - iPhone 15 Pro").
+ *
+ * In a real native shell we want the screen content to fill the device,
+ * with no bezel/island/home/caption decoration, and the dark page background
+ * replaced with the screen background.
+ *
+ * These rules only activate when <body> has the class "cap-app" (added by
+ * capacitor-init.js when running inside Capacitor).
+ */
+
+html.cap-app,
+body.cap-app {
+  background: #000 !important;
+  overflow: hidden;
+}
+
+body.cap-app {
+  padding: 0 !important;
+  gap: 0 !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+}
+
+body.cap-app .caption {
+  display: none !important;
+}
+
+body.cap-app .island,
+body.cap-app .home {
+  display: none !important;
+}
+
+body.cap-app .device {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* The .stage is 402x874 fixed-size, scaled via inline transform from JS.
+ * Override that to scale-to-fit the actual device viewport, anchored top-left.
+ * `100vw / 402px` etc. evaluate to a unitless number in modern WebKit/Blink. */
+body.cap-app .stage {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform-origin: top left !important;
+  transform: scale(min(calc(100vw / 402px), calc(100vh / 874px))) !important;
+}
+
+/* If a screen renders without the .stage wrapper (rare), still strip the
+ * dark background. */
+body.cap-app .device:only-child {
+  margin: 0 !important;
+}
+
+/* Hide the dev-only Tweaks button if it ever leaks into a Capacitor build. */
+body.cap-app [data-tweaks-toggle],
+body.cap-app .tweaks {
+  display: none !important;
+}
